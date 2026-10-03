@@ -2,8 +2,8 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ "master", "main" ]
-  workflow_dispatch: # Permite compilar manualmente con un botón
+    branches: [ "master", "main" ] # SOLO se activa si el script de sincronización inyecta código nuevo (Push) o si tú cambias algo
+  workflow_dispatch: # Te permite forzar la compilación manualmente con un botón cuando quieras
 
 env:
   REGISTRY: ghcr.io
@@ -19,11 +19,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Generamos el Dockerfile que le falta al repositorio oficial
+      # Generamos el Dockerfile dinámicamente ya que el repositorio original no lo incluye
       - name: Inject Dockerfile
         run: |
           cat << 'EOF' > Dockerfile
-          # Etapa 1: Compilar la aplicación
+          # Etapa 1: Compilar la aplicación oficial
           FROM node:18-alpine AS builder
           WORKDIR /app
           COPY package*.json ./
@@ -38,7 +38,7 @@ jobs:
           CMD ["nginx", "-g", "daemon off;"]
           EOF
 
-      # Paso clave: Convierte el nombre del usuario y repositorio a minúsculas obligatoriamente
+      # Convierte el nombre del usuario y repositorio a minúsculas para cumplir las reglas de GHCR
       - name: Downcase repository name
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
@@ -53,6 +53,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Compila y empuja la imagen únicamente cuando hay cambios reales
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
