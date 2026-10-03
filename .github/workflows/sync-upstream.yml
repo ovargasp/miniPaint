@@ -1,0 +1,29 @@
+name: Sincronizar con repositorio oficial
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Se ejecuta automáticamente todos los domingos a la medianoche (UTC)
+  workflow_dispatch: # Te permite forzar la sincronización manualmente con un botón
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sincronizar Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+        with:
+          target_sync_branch: master
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_sync_branch: master
+          upstream_repo: viliusle/miniPaint
+          
+          # En caso de que el autor original reescriba el historial, esto fuerza la actualización
+          upstream_pull_args: '--allow-unrelated-histories -X theirs'
